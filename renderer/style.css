@@ -1,0 +1,111 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+#buddy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── Speech bubble ─────────────────────────────────────────────────────── */
+#bubble {
+  background: #ffffff;
+  border: 2px solid #2c2c3e;
+  border-radius: 12px;
+  padding: 10px 12px;
+  width: 186px;
+  position: relative;
+  box-shadow: 3px 3px 0 #2c2c3e;
+  animation: pop-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Downward arrow pointing to character */
+#bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #2c2c3e;
+}
+#bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #ffffff;
+  z-index: 1;
+}
+
+#bubble-text {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #2c2c3e;
+  white-space: pre-wrap;   /* honours \n so multi-line summaries render */
+}
+
+#bubble.hidden {
+  display: none;
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Pixel canvas ──────────────────────────────────────────────────────── */
+#canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: pointer;
+  display: block;
+}
+
+/* ── Status strip ──────────────────────────────────────────────────────── */
+#status-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: rgba(0,0,0,0.35);
+  border-radius: 999px;
+}
+
+#status-dot {
+  width:  8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94a3b8; /* default: grey = not yet loaded */
+  transition: background 0.3s ease;
+}
+
+/* State classes set by renderer.js */
+#status-dot.ok      { background: #22c55e; }   /* green  — all files loaded  */
+#status-dot.warn    { background: #f59e0b; }   /* amber  — some errors       */
+#status-dot.error   { background: #ef4444; }   /* red    — all failed        */
+#status-dot.none    { background: #94a3b8; }   /* grey   — nothing configured*/
+
+#status-label {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+}

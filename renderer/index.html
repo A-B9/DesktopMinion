@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="buddy">
+
+    <!-- Speech bubble — sits above the character -->
+    <div id="bubble" class="hidden">
+      <p id="bubble-text"></p>
+    </div>
+
+    <!-- Pixel character -->
+    <canvas id="canvas" width="128" height="128"></canvas>
+
+    <!-- File status strip — shows which files are loaded -->
+    <div id="status-strip">
+      <span id="status-dot"></span>
+      <span id="status-label">Initialising…</span>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

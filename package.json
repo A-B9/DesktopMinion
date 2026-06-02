@@ -1,0 +1,16 @@
+{
+  "name": "desktop-buddy",
+  "version": "0.1.0",
+  "description": "AI-powered desktop companion",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^42.3.1"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
+    "dotenv": "^17.4.2"
+  }
+}
