@@ -4,13 +4,36 @@
   "description": "AI-powered desktop companion",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+    "build": "npm run pack && xattr -cr dist/mac-arm64/DesktopMinion.app && codesign --sign - --force --deep dist/mac-arm64/DesktopMinion.app && hdiutil create -volname DesktopMinion -srcfolder dist/mac-arm64/DesktopMinion.app -ov -format UDZO dist/DesktopMinion.dmg"
   },
   "devDependencies": {
-    "electron": "^42.3.1"
+    "electron": "^42.3.1",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
-    "dotenv": "^17.4.2"
+    "@anthropic-ai/sdk": "^0.100.1"
+  },
+  "build": {
+    "appId": "com.personal.desktopminion",
+    "productName": "DesktopMinion",
+    "afterPack": "./scripts/afterPack.js",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "dir", "arch": ["arm64"] }],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "sign": "./scripts/sign.js"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings-preload.js",
+      "renderer/**",
+      "settings/**",
+      "!config.json",
+      "!.env"
+    ]
   }
 }

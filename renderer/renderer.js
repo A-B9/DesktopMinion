@@ -17,29 +17,94 @@ const P = 8; // CSS pixels per grid block  (16 blocks × 8 = 128px canvas)
 const PALETTE = {
   '.': null,        // transparent
   'K': '#2c2c3e',   // dark outline
-  'B': '#4a9eff',   // body blue
-  'W': '#ffffff',   // eye whites
-  'Y': '#ffd700',   // antenna tip
+  'O': '#f0832f',   // Charizard orange
+  'C': '#f6d8a8',   // cream — horns & snout
+  'W': '#ffffff',   // eye whites / teeth
+  'T': '#1f9e8f',   // teal pupil
+  'R': '#e8482a',   // mouth / flame red
 };
 
+// Charizard-style dragon head: orange face, cream horns + snout, teal eyes.
 const SPRITE_NEUTRAL = [
   '................',
-  '........Y.......',
-  '........K.......',
-  '......KKKK......',
-  '.....KBBBBK.....',
-  '....KBBBBBBK....',
-  '....KBWBBWBK....',  // eyes open
-  '....KBKBBKBK....',  // pupils
-  '....KBBBBBBK....',
-  '....KBKKKKBK....',  // flat mouth
-  '....KBBBBBBK....',
-  '.....KBBBBK.....',
-  '......KKKK......',
-  '......KBBK......',
-  '.....KBBBBK.....',
-  '.....KBBBBK.....',
+  '..K..........K..',  // horn tips
+  '..KC........CK..',  // horns
+  '...KC......CK...',  // horns
+  '...KCK....KCK...',  // horns meet head
+  '....KOOOOOOK....',  // head top
+  '...KOOOOOOOOK...',
+  '..KOWWOOOOWWOK..',  // eyes — whites
+  '..KOWTOOOOTWOK..',  // eyes — teal pupils
+  '..KOOOOOOOOOOK..',  // cheeks
+  '..KOOOCCCCOOOK..',  // snout top
+  '...KOCCCCCCOK...',  // snout
+  '...KOCKCCKCOK...',  // nostrils
+  '...KOCCCCCCOK...',  // snout
+  '....KKCCCCKK....',  // closed mouth
+  '......KKKK......',  // chin
 ];
+
+const SPRITE_HAPPY = [
+  '................',
+  '..K..........K..',
+  '..KC........CK..',
+  '...KC......CK...',
+  '...KCK....KCK...',
+  '....KOOOOOOK....',
+  '...KOOOOOOOOK...',
+  '..KOWWOOOOWWOK..',  // bright eyes
+  '..KOWTOOOOTWOK..',
+  '..KOOOOOOOOOOK..',
+  '..KOOOCCCCOOOK..',
+  '...KOCCCCCCOK...',
+  '...KOCKCCKCOK...',  // nostrils
+  '...KOWWWWWWOK...',  // open grin — top teeth
+  '....KRRRRRRK....',  // open mouth
+  '......KKKK......',
+];
+
+const SPRITE_STERN = [
+  '................',
+  '..K..........K..',
+  '..KC........CK..',
+  '...KC......CK...',
+  '...KCK....KCK...',
+  '....KOOOOOOK....',
+  '...KOOOOOOOOK...',
+  '..KOKOOOOOOKOK..',  // angry brows — outer
+  '..KOOKOOOOKOOK..',  // angry brows — slant inward
+  '..KOOOOOOOOOOK..',
+  '..KOOOCCCCOOOK..',
+  '...KOCCCCCCOK...',
+  '...KOCKCCKCOK...',  // nostrils
+  '...KOCCCCCCOK...',
+  '....KWKWWKWK....',  // bared-fang snarl
+  '......KKKK......',
+];
+
+const SPRITE_IDLE = [
+  '................',
+  '..K..........K..',
+  '..KC........CK..',
+  '...KC......CK...',
+  '...KCK....KCK...',
+  '....KOOOOOOK....',
+  '...KOOOOOOOOK...',
+  '..KOOOOOOOOOOK..',  // eyelids closed
+  '..KOKKOOOOKKOK..',  // sleepy eye lines
+  '..KOOOOOOOOOOK..',
+  '..KOOOCCCCOOOK..',
+  '...KOCCCCCCOK...',
+  '...KOCKCCKCOK...',  // nostrils
+  '...KOCCCCCCOK...',
+  '....KKCCCCKK....',  // relaxed mouth
+  '......KKKK......',
+];
+
+function setExpression(mood) {
+  const map = { happy: SPRITE_HAPPY, stern: SPRITE_STERN, idle: SPRITE_IDLE, neutral: SPRITE_NEUTRAL };
+  drawSprite(map[mood] || SPRITE_NEUTRAL);
+}
 
 function drawSprite(sprite) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -126,8 +191,9 @@ window.api.onTodosUpdated(({ files }) => {
 });
 
 // ── Handle AI-Generated message from main process ───────────────────────────
-window.api.onAiMessage(({ text }) => {
-    showBubble(text);
+window.api.onAiMessage(({ text, mood }) => {
+  showBubble(text);
+  setExpression(mood || 'neutral');
 })
 
 // ── Click character → toggle summary bubble ───────────────────────────────────

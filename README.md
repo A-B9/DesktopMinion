@@ -22,4 +22,4 @@ npm install
 npm start
 ```
 
-Add your `ANTHROPIC_API_KEY` to a `.env` file in the project root, and point `config.json` at your todo file. That's it.
+On first launch, right-click Byte and choose **Settings…** to enter your Anthropic API key and point Byte at your todo files. That's it — no config files to edit manually.

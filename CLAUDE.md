@@ -109,18 +109,39 @@ Electron splits work across two processes. The API key and file system access mu
 ```
 DesktopMinion/
 │
-├── main.js              # Main process: window, file I/O, API calls, timers
-├── preload.js           # Context bridge: exposes safe API surface to renderer
-├── package.json         # Electron dependency and npm start script
-├── config.json          # User-editable: paths, persona, timer interval
+├── main.js                  # Main process: window, file I/O, API calls, timers, settings
+├── preload.js               # Context bridge for the main widget window
+├── settings-preload.js      # Context bridge for the settings window
+├── package.json             # Dependencies, npm scripts, electron-builder config
+├── config.json              # Legacy — kept for first-run migration to userData only
 ├── .gitignore
-├── CLAUDE.md            # This file
+├── CLAUDE.md                # This file
+├── scripts/
+│   ├── sign.js          # No-op custom signer — tells electron-builder to skip signing
+│   └── afterPack.js     # Strips extended attributes from the packed app
 │
-└── renderer/
-    ├── index.html       # Shell: bubble div, canvas, status strip
-    ├── style.css        # Transparent window, bubble, pixel canvas, status dot
-    └── renderer.js      # Sprite drawing, bubble logic, IPC listeners
+├── renderer/
+│   ├── index.html       # Shell: bubble div, canvas, status strip
+│   ├── style.css        # Transparent window, bubble, pixel canvas, status dot
+│   └── renderer.js      # Sprite drawing, bubble logic, IPC listeners
+│
+└── settings/
+    ├── settings.html    # Settings form UI
+    ├── settings.css     # Dark-themed form styles
+    └── settings.js      # Load/save config, file picker, API key test
 ```
+
+### userData (runtime storage)
+
+Config and credentials are stored in `~/Library/Application Support/DesktopMinion/` — never inside the app bundle.
+
+```
+~/Library/Application Support/DesktopMinion/
+├── config.json        # todoPaths, checkInIntervalMinutes, persona
+└── credentials.json   # { "apiKey": "sk-ant-..." }
+```
+
+On first run, both files are migrated automatically from the project root `config.json` and `.env` if they exist.
 
 ### config.json Schema
 
@@ -165,6 +186,32 @@ To open DevTools temporarily, add after `win.loadFile(...)` in `main.js`:
 win.webContents.openDevTools({ mode: 'detach' });
 ```
 Remove before committing.
+
+---
+
+## Building the .app (Packaging)
+
+```bash
+npm run build
+```
+
+Produces:
+- `dist/DesktopMinion.dmg` — the disk image to share/install (~118 MB).
+- `dist/mac-arm64/DesktopMinion.app` — the app bundle (can be launched directly).
+
+**First launch:** the app is ad-hoc signed only (no paid Apple Developer cert), so Gatekeeper blocks it the first time. Right-click the app → **Open → Open**. Required once; after that it launches normally by double-click.
+
+### Why the build is a multi-step script, not plain `electron-builder`
+
+On macOS 15 (Sequoia), `codesign` refuses to sign Electron's bundled helper binaries because they carry extended-attribute "detritus" (`resource fork, Finder information, or similar detritus not allowed`). electron-builder's built-in signing step always hits this and the build dies. The workaround, encoded in the `build` / `pack` scripts in `package.json`:
+
+1. `scripts/sign.js` — a no-op custom `sign` function (referenced via `mac.sign` in `package.json`) tells electron-builder to **skip its own signing step**.
+2. `electron-builder --dir` assembles the unsigned `.app`.
+3. `xattr -cr` strips the extended attributes from the assembled app.
+4. `codesign --sign - --force --deep` ad-hoc signs the now-clean app ourselves.
+5. `hdiutil create` wraps the `.app` into a `.dmg`.
+
+Target is `arm64` only (Apple Silicon). `scripts/afterPack.js` also runs `xattr -cr` on the packed output as a belt-and-braces cleanup. `CSC_IDENTITY_AUTO_DISCOVERY=false` prevents electron-builder from trying to discover a signing certificate.
 
 ---
 
@@ -215,38 +262,33 @@ Remove before committing.
 - `did-finish-load` handler calls `startCheckInTimer()` so the interval begins as soon as the window is ready.
 - To test quickly: set `"checkInIntervalMinutes": 0.2` (or any small value) in `config.json`, run `npm start`, verify `[timer]` and `[api]` logs appear on schedule. Remember to restore to `30` after testing.
 
-### ⬜ M5 — Sprite Expressions (NOT STARTED)
+### ✅ M5 — Sprite Expressions (COMPLETE)
 
-Goal: Byte's face changes to match the AI message tone.
+- `generateMessage()` system prompt updated to request JSON `{ "mood": "happy|stern|neutral", "text": "..." }`.
+- JSON parsed in `generateMessage()`; falls back to `mood: 'neutral'` if parsing fails. Returns `{ text, mood }` object.
+- `sendAiMessage()` updated to destructure `{ text, mood }` from result and forward both over IPC.
+- `SPRITE_HAPPY` — smile: mouth row has K at corners, B in centre (raised ends).
+- `SPRITE_STERN` — squinting: eye row K instead of W (no whites), pupil row cleared.
+- `SPRITE_IDLE` — drowsy: top eye row covered, whites show only in lower eye row.
+- `setExpression(mood)` maps mood string to sprite and calls `drawSprite()`.
+- `onAiMessage` handler updated to call `setExpression(mood)` alongside `showBubble(text)`.
 
-**`renderer/renderer.js`:**
-- Define `SPRITE_HAPPY`, `SPRITE_STERN`, `SPRITE_IDLE` alongside `SPRITE_NEUTRAL`.
-- Add `setExpression(mood)` that calls `drawSprite(SPRITE_<MOOD>)`.
-- Call `setExpression(mood)` when `'ai-message'` arrives.
+### ✅ M6 — Settings UI + Packaging (COMPLETE)
 
-**`main.js` → `generateMessage()`:**
-- Ask the model to return JSON: `{ "mood": "happy|stern|neutral", "text": "..." }`.
-- Parse JSON before sending to renderer; fall back to `mood: 'neutral'` on parse failure.
-
-### ⬜ M6 — Launch at Login + Menu Bar Icon (NOT STARTED)
-
-Goal: Byte starts at boot; menu bar icon for show/hide, reload, quit.
-
-**`main.js`:**
-```js
-app.setLoginItemSettings({ openAtLogin: true });
-
-const tray = new Tray(path.join(__dirname, 'assets/tray-icon.png'));
-tray.setContextMenu(Menu.buildFromTemplate([
-  { label: 'Show / Hide Byte',  click: toggleWindow },
-  { label: 'Reload files',      click: sendTodosToRenderer },
-  { label: 'Launch at login',   type: 'checkbox', checked: ..., click: toggleLoginItem },
-  { type: 'separator' },
-  { label: 'Quit',              click: () => app.quit() },
-]));
-```
-
-Create `assets/tray-icon.png` at 22×22px (macOS menu bar size).
+- Config and API key moved from project root (`config.json` / `.env`) to `~/Library/Application Support/DesktopMinion/`. First run auto-migrates existing files.
+- `loadApiKey()` / `saveApiKey()` / `loadConfig()` / `saveConfig()` read and write the userData directory.
+- `initAnthropicClient(key)` initialises (or nulls) the Anthropic client whenever the key changes — no longer reads `process.env`.
+- `dotenv` dependency removed.
+- `openSettings()` creates a 480×580 `BrowserWindow` backed by `settings-preload.js`.
+- `settings/` directory: `settings.html` (form), `settings.css` (dark theme), `settings.js` (load/save logic).
+- Settings form fields: API key (with Test button), todo file paths (add/remove/browse), check-in interval, persona.
+- IPC handlers added: `get-config`, `save-config`, `test-api-key`, `pick-file`, `close-settings`.
+- Saving reloads watchers, restarts the timer, and pushes fresh todos to the renderer immediately.
+- Right-click context menu updated: "Settings…" added as the first item.
+- `electron-builder` added as a devDependency. Packaged via `npm run build` — see the **Building the .app** section above for the multi-step script and why it exists.
+- Build output: `dist/DesktopMinion.dmg` + `dist/mac-arm64/DesktopMinion.app` (arm64 / Apple Silicon only).
+- Signing is skipped by electron-builder (`scripts/sign.js`); the app is ad-hoc signed manually after stripping extended attributes, to work around a macOS 15 `codesign` failure on Electron's helper binaries.
+- `config.json` and `.env` excluded from the app bundle via the `files` exclusion list.
 
 ---
 
@@ -298,4 +340,4 @@ Transparent always-on-top windows, IPC, and API calls require minimal boilerplat
 
 ---
 
-*Current state: Milestones 1–4 complete. Next: Milestone 5 — Sprite Expressions.*
+*Current state: Milestones 1–6 complete. MVP done. Next steps are Future Improvements (F1–F7).*

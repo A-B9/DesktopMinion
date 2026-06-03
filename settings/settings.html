@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Byte — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Byte Settings</h1>
+
+    <div class="section">
+      <label for="api-key">Anthropic API Key</label>
+      <div class="input-row">
+        <input type="password" id="api-key" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+        <button id="test-btn" class="secondary">Test</button>
+      </div>
+      <p id="key-status" class="status"></p>
+    </div>
+
+    <div class="section">
+      <label>Todo file paths</label>
+      <div id="paths-list"></div>
+      <div class="input-row" style="margin-top:6px">
+        <button id="add-path-btn" class="secondary">+ Add path</button>
+        <button id="browse-btn" class="secondary">Browse…</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="interval">Check-in interval (minutes)</label>
+      <input type="number" id="interval" min="0.1" max="1440" step="1" style="width:100px">
+    </div>
+
+    <div class="section">
+      <label for="persona">Persona</label>
+      <textarea id="persona" rows="4" placeholder="Describe Byte's personality…" spellcheck="false"></textarea>
+    </div>
+
+    <div class="actions">
+      <button id="cancel-btn" class="secondary">Cancel</button>
+      <button id="save-btn" class="primary">Save</button>
+    </div>
+    <p id="save-status" class="status centered"></p>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
